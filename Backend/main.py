@@ -16,7 +16,7 @@ from context.retry_queue import run_retry_processor
 from fastapi import Query
 import collections
 
-
+#Creates app instance
 app = FastAPI()
 
 logging.basicConfig(
@@ -26,27 +26,33 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+#Rservation request
 class ReservationRequest(BaseModel):
     user_id : str
     flight_id: str
 
+#On startup always listen
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting retry processor in background...")
     asyncio.create_task(run_retry_processor())
 
+#Get the flights
 @app.get("/flights")
 async def listingFlights():
     return await get_flights()
 
+#Get the users
 @app.get("/users")
 async def listingUsers():
     return await get_users()
 
+#Get reservations of a user
 @app.get("/reservations")
 async def get_user_reservations(user_id: str = Query(...)):
     return await get_reservations_by_user(user_id)
 
+#Reserve
 @app.post("/reserve")
 async def reserve(data: ReservationRequest):
     logger.info(f"[Reserve Request] User: {data.user_id}, Flight: {data.flight_id}")
@@ -57,6 +63,7 @@ async def reserve(data: ReservationRequest):
         return await handle_reservation(data.user_id, data.flight_id, "confirmed")
     return await call_services("reservations", reserve_operation)
 
+#Down a service
 @app.post("/failure/{service}")
 def failure(service: str):
     if service in services_status:
@@ -69,6 +76,7 @@ def failure(service: str):
         return {"state": f"{service} inactive (will auto re-up in 15s)"}
     return {"state": "Service not found"}
 
+#Auto recovery service
 async def auto_recover_service(service: str, delay: int = 15):
     await asyncio.sleep(delay)
     if service in services_status:
@@ -76,6 +84,7 @@ async def auto_recover_service(service: str, delay: int = 15):
         services_status[service]["cb"].reset()
         logger.info(f"[Auto-Recovery] {service} auto re-up after {delay}s.")
 
+#Manual reup service
 @app.post("/reup/{service}")
 def reUp(service: str):
     if service in services_status:
@@ -85,6 +94,7 @@ def reUp(service: str):
         return {"state": f"{service} active"}
     return {"state": "Service not found"}
 
+#Get service status
 @app.get("/status")
 async def status():
     logger.info("Services status.")
@@ -97,6 +107,7 @@ async def status():
         for service, config in services_status.items()
     }
 
+#Hardcode data
 @app.get("/hardcodeflights")
 def hardcodeFlights():
     addFlights()
@@ -117,6 +128,7 @@ async def reservation_status(user_id: str, flight_id: str):
         return {"status": reservation["status"], "msg": "Reservation found"}
     return {"status": "not_found", "msg": "Reservation not found"}
 
+#Call the services
 @retry()
 async def call_services(service_name: str, operation):
     service = services_status.get(service_name)

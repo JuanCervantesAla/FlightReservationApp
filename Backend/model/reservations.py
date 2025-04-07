@@ -1,10 +1,14 @@
 from database.mongo import reservations_collection, flights_collection
 from datetime import datetime
 from bson import ObjectId
-
 import logging
+
+#File to do operations with the reservations direct from mongo
+
+#Logger to print the info
 logger = logging.getLogger(__name__)
 
+#Creates the reservation with the data as the userid, flight id, the status and the flight date
 async def create_reservation(user_id, flight_id, status):
     reservation = {
         "user_id": user_id,
@@ -23,6 +27,7 @@ async def create_reservation(user_id, flight_id, status):
 
     return True
 
+#Finds if a user has made a reservation or not
 async def find_reservation(user_id: str = None, flight_id: str = None):
     query = {}
     if user_id:
@@ -33,6 +38,7 @@ async def find_reservation(user_id: str = None, flight_id: str = None):
     results = await reservations_collection.find(query).to_list(length=100)
     return results
 
+#Gets all the reservations made by an user and joining the flight information
 async def get_reservations_by_user(user_id: str):
     results = []
     async for reservation in reservations_collection.find({"user_id": user_id}):

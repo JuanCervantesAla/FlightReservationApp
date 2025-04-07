@@ -1,6 +1,10 @@
 from datetime import datetime, timedelta
 import logging
 
+#Circuit braker
+#As it the name indicated
+#Will try to reUp the service after a number of failures and timeouts
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -17,6 +21,7 @@ class CircuitBreaker:
         self.last_success_time = None
         self.state = "CLOSED"  
 
+    #On failure of reup
     def record_failure(self):
         self.failure_count += 1
         self.last_failure_time = datetime.now()
@@ -26,6 +31,7 @@ class CircuitBreaker:
             self.state = "OPEN"
             logger.error(f"[Breaker] Max failures reached. Circuit is now OPEN.")
 
+    #On succes of try
     def record_success(self):
         if self.state != "CLOSED":
             logger.info(f"[Breaker] Successful call. Circuit now CLOSED.")
@@ -33,6 +39,7 @@ class CircuitBreaker:
         self.last_success_time = datetime.now()
         self.state = "CLOSED"
 
+    #If the request is allowed or not
     def is_request_allowed(self):
         now = datetime.now()
 
@@ -51,11 +58,13 @@ class CircuitBreaker:
             logger.warning(f"[Breaker] OPEN. Retry in {self.reset_timeout - elapsed:.1f}s.")
             return False
 
+        #Half open trying to reup
         if self.state == "HALF_OPEN":
             return True
 
         return True
 
+    #Reset the braker
     def reset(self):
         logger.info(f"[Breaker] Resetting circuit breaker to CLOSED.")
         self.failure_count = 0

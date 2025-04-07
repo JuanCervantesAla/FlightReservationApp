@@ -5,6 +5,8 @@ from asyncio import timeout
 import asyncio
 import logging
 
+#Retry queue just trying to count the number of the circuit braker reups the service
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -17,6 +19,7 @@ queueRetry = []
 def add_try(func, *args):
     queueRetry.append((func,args))
 
+#Official "counter" of retries
 def retry(max_retries=3, initial_delay=1, backoff_factor=2):
     def decorator(func):
         async def wrapper(*args, **kwargs):
